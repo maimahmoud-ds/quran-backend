@@ -21,6 +21,8 @@ app.add_middleware(
 
 init_db()
 
+ALLOWED_STATUSES = ["pending", "completed", "late"]
+
 
 # ---------- شكل البيانات المطلوب إرسالها ----------
 class UserCreate(BaseModel):
@@ -34,6 +36,10 @@ class TaskCreate(BaseModel):
     action_text: str
     status: str = "pending"
     due_date: Optional[date] = None
+
+
+class StatusUpdate(BaseModel):
+    status: str
 
 
 # ---------- Endpoints ----------
@@ -75,9 +81,24 @@ def create_task(data: TaskCreate, db: Session = Depends(get_db)):
     return task
 
 
-@app.get("/tasks")
-def list_tasks(user_id: Optional[int] = None, db: Session = Depends(get_db)):
-    query = db.query(UserTask)
-    if user_id is not None:
-        query = query.filter(UserTask.user_id == user_id)
-    return query.all()
+@app.get("/tasks/{user_id}")
+def get_user_tasks(user_id: int, db: Session = Depends(get_db)):
+    return db.query(UserTask).filter(UserTask.user_id == user_id).all()
+
+
+@app.put("/tasks/{task_id}/status")
+def update_task_status(task_id: int, data: StatusUpdate, db: Session = Depends(get_db)):
+    if data.status not in ALLOWED_STATUSES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid status. Use one of: {ALLOWED_STATUSES}",
+        )
+
+    task = db.query(UserTask).filter(UserTask.task_id == task_id).first()
+    if task is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    task.status = data.status
+    db.commit()
+    db.refresh(task)
+    return task
