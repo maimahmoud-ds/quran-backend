@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, Date, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, String, Date, Boolean, ForeignKey
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 DATABASE_URL = "sqlite:///./app.db"
@@ -25,6 +25,8 @@ class UserTask(Base):
     action_text = Column(String, nullable=False)
     status = Column(String, default="pending")
     due_date = Column(Date)
+    end_date = Column(Date, nullable=True)            # جديد: تاريخ نهاية الخطة
+    custom_actions = Column(Boolean, default=False)   # جديد: True لو الواجب كتبه المستخدم
 
 
 def init_db():
